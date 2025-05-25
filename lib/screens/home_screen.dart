@@ -17,7 +17,23 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Forecast> _forecast = [];
   bool _isLoading = false;
   String? _city;
+  String? _errorMessage; // To store "No record found" message
   final TextEditingController _cityController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Add a listener to the TextEditingController to update the UI when text changes
+    _cityController.addListener(() {
+      setState(() {}); // Rebuild to update the suffixIcon
+    });
+  }
+
+  @override
+  void dispose() {
+    _cityController.dispose();
+    super.dispose();
+  }
 
   Future<void> _fetchWeatherData(String city) async {
     if (city.isEmpty) {
@@ -30,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isLoading = true;
       _city = city;
+      _errorMessage = null; // Clear any previous error message
     });
 
     try {
@@ -45,11 +62,28 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
         _weather = null;
         _forecast = [];
+        _city = null;
+        // Check if the error indicates "city not found" (typically a 404 from OpenWeatherMap)
+        if (e.toString().contains('404') || e.toString().contains('city not found')) {
+          _errorMessage = 'No record found for $city';
+        } else {
+          _errorMessage = 'Error: $e';
+        }
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
     }
+  }
+
+  void _clearSearch() {
+    setState(() {
+      _cityController.clear();
+      _weather = null;
+      _forecast = [];
+      _city = null;
+      _errorMessage = null; // Clear the error message
+    });
   }
 
   String _formatDescription(String description) {
@@ -71,6 +105,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   LinearGradient _getGradient(String? description) {
+    // If _weather is null (initial state), return a gray background
+    if (_weather == null) {
+      return const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Colors.grey, Colors.grey], // Solid gray background
+      );
+    }
+
+    // Otherwise, proceed with the existing gradient logic
     switch (_formatDescription(description ?? 'clear sky')) {
       case 'SUNNY':
         return const LinearGradient(
@@ -126,9 +170,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     // Use DateTime.now() to get the current date and time dynamically
-    final now = DateTime.now(); // Simulating as May 25, 2025, 05:37 PM IST
-    final timeFormat = DateFormat('HH:mm').format(now); // "17:37"
-    final dateFormat = DateFormat('EEEE, d MMM yyyy').format(now).toUpperCase(); // "SUNDAY, 25 MAY 2025"
+    final now = DateTime.now(); // Simulating as May 26, 2025, 12:06 AM IST
+    final timeFormat = DateFormat('HH:mm').format(now); // "00:06"
+    final dateFormat = DateFormat('EEEE, d MMM yyyy').format(now).toUpperCase(); // "MONDAY, 26 MAY 2025"
 
     return Scaffold(
       body: Container(
@@ -152,14 +196,36 @@ class _HomeScreenState extends State<HomeScreen> {
                     fillColor: Colors.white.withOpacity(0.8),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
+                      borderSide: const BorderSide(
+                        color: Color.fromARGB(255, 27, 26, 26),
+                        width: 0.6,
+                      ),
                     ),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.search, color: Colors.black),
-                      onPressed: () {
-                        _fetchWeatherData(_cityController.text.trim());
-                      },
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: Color.fromARGB(255, 27, 26, 26),
+                        width: 0.6,
+                      ),
                     ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: Color.fromARGB(255, 27, 26, 26),
+                        width: 0.6,
+                      ),
+                    ),
+                    suffixIcon: _cityController.text.isEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.search, color: Colors.black),
+                            onPressed: () {
+                              _fetchWeatherData(_cityController.text.trim());
+                            },
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.black),
+                            onPressed: _clearSearch,
+                          ),
                   ),
                   onSubmitted: (value) {
                     _fetchWeatherData(value.trim());
@@ -173,8 +239,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Show loading indicator or weather UI
-                        if (_isLoading)
+                        // Show either the error message or the weather UI
+                        if (_errorMessage != null)
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.grey, // Match the initial gray background
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Center(
+                              child: Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 18,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          )
+                        else if (_isLoading)
                           const Center(child: CircularProgressIndicator())
                         else if (_city == null)
                           const Center(

@@ -1,39 +1,3 @@
-// import 'dart:convert';
-// import 'package:http/http.dart' as http;
-// import '../models/weather.dart';
-// import '../models/forecast.dart';
-
-// class WeatherService {
-//   final String apiKey = '840270d5930e1685b79be717f8d743c2'; // Your API key
-//   final String baseUrl = 'https://api.openweathermap.org/data/2.5';
-
-//   Future<Weather> fetchCurrentWeather(String city) async {
-//     final response = await http.get(
-//       Uri.parse('$baseUrl/weather?q=$city&appid=$apiKey'),
-//     );
-
-//     if (response.statusCode == 200) {
-//       return Weather.fromJson(jsonDecode(response.body));
-//     } else {
-//       throw Exception('Failed to load weather data');
-//     }
-//   }
-
-//   Future<List<Forecast>> fetchForecast(String city) async {
-//     final response = await http.get(
-//       Uri.parse('$baseUrl/forecast?q=$city&appid=$apiKey'),
-//     );
-
-//     if (response.statusCode == 200) {
-//       final data = jsonDecode(response.body);
-//       return (data['list'] as List)
-//           .map((item) => Forecast.fromJson(item))
-//           .toList();
-//     } else {
-//       throw Exception('Failed to load forecast data');
-//     }
-//   }
-// }
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
